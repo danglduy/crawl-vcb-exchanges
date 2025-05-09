@@ -32,8 +32,8 @@ This web application provides a dynamic currency exchange calculator using the l
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/vietcombank-exchange-calculator.git
-   cd vietcombank-exchange-calculator
+   git clone https://github.com/danglduy/crawl-vcb-exchanges.git
+   cd crawl-vcb-exchanges
    ```
 
 2. Create and activate a virtual environment (optional but recommended):
