@@ -6,5 +6,8 @@ dist/
 wheels/
 *.egg-info
 
+# Ignore CSV files in the data directory
+data/*.csv
+
 # Virtual environments
 .venv

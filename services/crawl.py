@@ -77,13 +77,29 @@ def extract_table_data(table):
 
 def save_to_csv(df, filename="vietcombank_exchange_rates.csv"):
     """Save DataFrame to CSV and return the absolute path"""
+    # Ensure directory exists
+    directory = os.path.dirname(filename)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+
     df.to_csv(filename, index=False)
     return os.path.abspath(filename)
 
 
-def crawl_vietcombank_exchange_rates():
+def crawl_vietcombank_exchange_rates(output_path=None):
     """Main function to crawl and extract exchange rates"""
     driver = None
+
+    if output_path is None:
+        # Use the default path relative to this file
+        script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(script_dir, 'data')
+
+        # Ensure data directory exists
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+
+        output_path = os.path.join(data_dir, 'vietcombank_exchange_rates.csv')
 
     try:
         # Setup and navigate
@@ -103,6 +119,11 @@ def crawl_vietcombank_exchange_rates():
 
         # Create DataFrame
         df = pd.DataFrame(data, columns=headers)
+
+        # Save to CSV
+        save_to_csv(df, output_path)
+        print(f"Exchange rates saved to {output_path}")
+
         return df
 
     except Exception as e:
@@ -115,15 +136,4 @@ def crawl_vietcombank_exchange_rates():
 
 # Run the function when script is executed directly
 if __name__ == "__main__":
-    print("Starting exchange rate extraction...")
-    exchange_rates = crawl_vietcombank_exchange_rates()
-
-    if not exchange_rates.empty:
-        print("\nExchange rates data:")
-        print(exchange_rates)
-
-        # Save to CSV
-        csv_path = save_to_csv(exchange_rates)
-        print(f"Data saved to {csv_path}")
-    else:
-        print("No data found")
+    crawl_vietcombank_exchange_rates()

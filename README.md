@@ -56,54 +56,55 @@ This web application provides a dynamic currency exchange calculator using the l
 
 ## Usage
 
-1. Run the crawler initially to get the latest exchange rates:
-   ```bash
-   python main.py
-   ```
-
-2. Start the Flask application:
+1. Start the Flask application (it will automatically get the latest rates if no CSV exists):
    ```bash
    python app.py
    ```
 
-3. Open your web browser and go to `http://127.0.0.1:5000/`
+2. Open your web browser and go to `http://127.0.0.1:5000/`
 
-4. Use the calculator:
-   - Select a currency from the dropdown
-   - Enter the value you want to convert
-   - Adjust the extra percentage if needed
-   - See the calculated total
-   - Add more rows as needed
-   - Click "Refresh Rates" to get the latest exchange rates
+3. Use the calculator:
+  - Select a currency from the dropdown
+  - Enter the value you want to convert
+  - Adjust the extra percentage if needed
+  - See the calculated total
+  - Add more rows as needed
+  - Click "Refresh Rates" to get the latest exchange rates
 
 ## Project Structure
 
 ```
 vietcombank-exchange-calculator/
-├── app.py                  # Flask application
-├── main.py                 # Crawler script for exchange rates
-├── vietcombank_exchange_rates.csv  # Crawled exchange rate data
+├── app.py                           # Flask application
+├── services/
+│   ├── __init__.py                  # Makes services a Python package
+│   └── crawl.py                     # Crawler service for exchange rates
+├── data/
+│   └── .keep                        # Ensures data directory exists in git
+│   └── vietcombank_exchange_rates.csv  # Crawled exchange rate data (generated, git-ignored)
 ├── templates/
-│   └── index.html          # Main application interface
-└── README.md               # Project documentation
+│   └── index.jinja2                 # Main application interface
+├── .gitignore                       # Git ignore configuration
+└── README.md                        # Project documentation
 ```
 
 ## How It Works
 
-1. **Crawling Exchange Rates**:
-   - The `main.py` script uses Selenium to crawl the Vietcombank website
-   - It extracts currency rates from the exchange rate table
-   - The data is saved to a CSV file for the application to use
+1. **Automatic Crawling for Exchange Rates**:
+  - The `services/crawl.py` module uses Selenium to crawl the Vietcombank website
+  - It extracts currency rates from the exchange rate table
+  - The data is saved to a CSV file for the application to use
+  - If no CSV file exists when the app starts, the crawler is automatically executed
 
 2. **Web Application**:
-   - The Flask app loads the exchange rate data from the CSV
-   - The frontend displays a dynamic table for currency conversion
-   - Users can add/remove rows, select currencies, and enter values
-   - The application calculates totals with extra percentages
+  - The Flask app loads the exchange rate data from the CSV
+  - The frontend displays a dynamic table for currency conversion
+  - Users can add/remove rows, select currencies, and enter values
+  - The application calculates totals with extra percentages
 
 3. **Rate Refreshing**:
-   - The "Refresh Rates" button triggers the crawler to get new rates
-   - The application updates the rates without disrupting the table
+  - The "Refresh Rates" button triggers the crawler to get new rates
+  - The application updates the rates without disrupting the table
 
 ## Dependencies
 
@@ -118,10 +119,6 @@ All dependencies are managed using `uv` and are already locked in the project.
 ## License
 
 [MIT License](LICENSE)
-
-## Contributors
-
-- Your Name (@yourusername)
 
 ## Acknowledgments
 

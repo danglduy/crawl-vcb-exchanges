@@ -1,23 +1,45 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify
 import pandas as pd
 import os
-import subprocess
 import time
+from services.crawl import crawl_vietcombank_exchange_rates
 
 app = Flask(__name__)
 
+
+# Function to get the path to the CSV file
+def get_csv_path():
+    # Create the data directory if it doesn't exist
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    return os.path.join(data_dir, 'vietcombank_exchange_rates.csv')
+
+
 # Function to load the exchange rate data
 def load_exchange_rates():
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vietcombank_exchange_rates.csv')
+    csv_path = get_csv_path()
+
+    # Check if the CSV file exists, if not, crawl the data first
+    if not os.path.exists(csv_path):
+        print("Exchange rate CSV not found. Crawling data...")
+        df = crawl_vietcombank_exchange_rates(csv_path)
+        if df.empty:
+            print("Warning: Failed to crawl initial exchange rate data.")
+            return pd.DataFrame()
+
     try:
-        # Load CSV and set 'Mã ngoại tệ' as index for easy lookup
+        # Load CSV
         df = pd.read_csv(csv_path)
         # Convert the 'Bán' (selling) rate column to numeric values
+        # Remove any commas in the values
         df['Bán'] = df['Bán'].str.replace(',', '').astype(float)
         return df
     except Exception as e:
         print(f"Error loading exchange rates: {e}")
         return pd.DataFrame()
+
 
 # Route for main page
 @app.route('/')
@@ -37,7 +59,8 @@ def index():
             for _, row in df.iterrows()
         ]
 
-    return render_template('index.html', currencies=currencies)
+    return render_template('index.jinja2', currencies=currencies)
+
 
 # API route to get the rate for a specific currency
 @app.route('/api/rate/<currency_code>')
@@ -57,24 +80,23 @@ def get_rate(currency_code):
     rate = currency_data.iloc[0]['Bán']
     return jsonify({"rate": rate})
 
-# API endpoint to refresh exchange rates by running main.py crawler
+
+# API endpoint to refresh exchange rates by running crawler
 @app.route('/api/refresh', methods=['POST'])
 def refresh_rates():
     try:
-        # Run the crawler (main.py)
-        result = subprocess.run(['python', 'main.py'],
-                               capture_output=True,
-                               text=True,
-                               check=True)
+        # Get the CSV path
+        csv_path = get_csv_path()
 
-        # Wait a short time to ensure file is written
-        time.sleep(1)
-
-        # Reload exchange rates
-        df = load_exchange_rates()
+        # Run the crawler
+        print("Refreshing exchange rates...")
+        df = crawl_vietcombank_exchange_rates(csv_path)
 
         if df.empty:
             return jsonify({"success": False, "message": "Failed to load updated rates"}), 500
+
+        # Convert the 'Bán' (selling) rate column to numeric values
+        df['Bán'] = df['Bán'].str.replace(',', '').astype(float)
 
         # Prepare updated currency data
         currencies = [
@@ -90,16 +112,20 @@ def refresh_rates():
             "currencies": currencies
         })
 
-    except subprocess.CalledProcessError as e:
-        return jsonify({
-            "success": False,
-            "message": f"Error running crawler: {e.stderr}"
-        }), 500
     except Exception as e:
         return jsonify({
             "success": False,
             "message": f"Error: {str(e)}"
         }), 500
 
+
 if __name__ == '__main__':
+    # Ensure services directory exists
+    if not os.path.exists('services'):
+        os.makedirs('services')
+
+    # Make sure we have initial data
+    load_exchange_rates()
+
+    # Start the Flask app
     app.run(debug=True)
