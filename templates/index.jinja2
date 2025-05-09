@@ -68,11 +68,10 @@
       <h1>Currency Exchange Calculator</h1>
       <div>
         <button type="button" class="btn btn-success" id="refresh-btn">
-          <i class="fas fa-sync-alt"></i> Refresh Rates
+          <i class="fas fa-sync-alt"></i> Refresh Rates from API
         </button>
         <span id="refresh-status"></span>
-        <div id="last-updated" class="refresh-timestamp">Last updated: <span id="update-time">Initial load</span>
-        </div>
+        <div id="last-updated" class="refresh-timestamp">Last updated: <span id="update-time">Initial load</span></div>
       </div>
     </div>
 
@@ -113,7 +112,22 @@
   <!-- Custom JS -->
   <script>
     // Store currency data from Flask
-    let currencies = {{ currencies | tojson }};
+    let currencies = {{ currencies|tojson }};
+
+    // Check if currencies exist
+    if (!currencies || currencies.length === 0) {
+      // Add a fallback message if no currencies are available
+      document.body.innerHTML = `
+                <div class="container">
+                    <div class="alert alert-warning mt-5" role="alert">
+                        <h4 class="alert-heading">No exchange rate data available</h4>
+                        <p>Could not load the exchange rate data. Please try refreshing the page or contact the administrator.</p>
+                        <hr>
+                        <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+                    </div>
+                </div>
+            `;
+    }
 
     // Function to add a new row to the table
     function addRow() {

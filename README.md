@@ -1,6 +1,8 @@
 # Vietcombank Exchange Rate Calculator
 
-This web application provides a dynamic currency exchange calculator using the latest exchange rates from Vietcombank. The system crawls exchange rates from the Vietcombank website and allows users to perform currency conversions with adjustable percentages.
+This web application provides a dynamic currency exchange calculator using the latest exchange rates from Vietcombank.
+The system crawls exchange rates from the Vietcombank website and allows users to perform currency conversions with
+adjustable percentages.
 
 ## Features
 
@@ -25,8 +27,6 @@ This web application provides a dynamic currency exchange calculator using the l
 ### Prerequisites
 
 - Python 3.7+
-- Chrome web browser (for Selenium)
-- ChromeDriver (compatible with your Chrome version)
 
 ### Setup
 
@@ -52,7 +52,7 @@ This web application provides a dynamic currency exchange calculator using the l
    uv pip install .
    ```
 
-4. Make sure ChromeDriver is installed and in your PATH or in the project directory.
+4. Connect to the internet so the application can fetch the latest exchange rates from Vietcombank's API.
 
 ## Usage
 
@@ -64,12 +64,13 @@ This web application provides a dynamic currency exchange calculator using the l
 2. Open your web browser and go to `http://127.0.0.1:5000/`
 
 3. Use the calculator:
-  - Select a currency from the dropdown
-  - Enter the value you want to convert
-  - Adjust the extra percentage if needed
-  - See the calculated total
-  - Add more rows as needed
-  - Click "Refresh Rates" to get the latest exchange rates
+
+- Select a currency from the dropdown
+- Enter the value you want to convert
+- Adjust the extra percentage if needed
+- See the calculated total
+- Add more rows as needed
+- Click "Refresh Rates" to get the latest exchange rates
 
 ## Project Structure
 
@@ -90,29 +91,33 @@ vietcombank-exchange-calculator/
 
 ## How It Works
 
-1. **Automatic Crawling for Exchange Rates**:
-  - The `services/crawl.py` module uses Selenium to crawl the Vietcombank website
-  - It extracts currency rates from the exchange rate table
-  - The data is saved to a CSV file for the application to use
-  - If no CSV file exists when the app starts, the crawler is automatically executed
+1. **Automatic Fetching of Exchange Rates**:
+
+- The `services/crawl.py` module uses the official Vietcombank API to fetch exchange rates
+- It parses the XML response to extract currency codes, names, and rates
+- The data is saved to a CSV file for the application to use
+- If no CSV file exists when the app starts, the API is automatically called
 
 2. **Web Application**:
-  - The Flask app loads the exchange rate data from the CSV
-  - The frontend displays a dynamic table for currency conversion
-  - Users can add/remove rows, select currencies, and enter values
-  - The application calculates totals with extra percentages
+
+- The Flask app loads the exchange rate data from the CSV
+- The frontend displays a dynamic table for currency conversion
+- Users can add/remove rows, select currencies, and enter values
+- The application calculates totals with extra percentages
 
 3. **Rate Refreshing**:
-  - The "Refresh Rates" button triggers the crawler to get new rates
-  - The application updates the rates without disrupting the table
+
+- The "Refresh Rates" button triggers the crawler to get new rates
+- The application updates the rates without disrupting the table
 
 ## Dependencies
 
 This project uses the following main dependencies:
+
 - Flask
 - Pandas
-- Selenium
-- webdriver-manager
+- Requests
+- xml.etree.ElementTree (standard library)
 
 All dependencies are managed using `uv` and are already locked in the project.
 
@@ -127,4 +132,5 @@ All dependencies are managed using `uv` and are already locked in the project.
 
 ---
 
-*Note: This application is for educational and personal use only. Exchange rates are crawled from Vietcombank's public website. Always verify important currency conversions with official sources.*
+*Note: This application is for educational and personal use only. Exchange rates are crawled from Vietcombank's public
+website. Always verify important currency conversions with official sources.*

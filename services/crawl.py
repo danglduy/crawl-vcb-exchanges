@@ -1,81 +1,71 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+import requests
 import pandas as pd
-import time
 import os
+import xml.etree.ElementTree as ET
+from datetime import datetime
 
 
-def setup_driver():
-    """Set up and return configured WebDriver"""
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_argument(
-        "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36")
+def fetch_exchange_rates():
+    """Fetch exchange rates from Vietcombank API"""
+    url = "https://portal.vietcombank.com.vn/Usercontrols/TVPortal.TyGia/pXML.aspx"
 
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    try:
+        # Make the request to the API
+        response = requests.get(url)
 
-
-def navigate_to_page(driver, url, wait_time=5):
-    """Navigate to URL and wait for page to load"""
-    driver.get(url)
-
-    # Use explicit wait
-    wait = WebDriverWait(driver, wait_time)
-    wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-
-    # Scroll to help load dynamic content
-    driver.execute_script("window.scrollTo(0, 500);")
-    time.sleep(1)
+        # Check if the request was successful
+        if response.status_code == 200:
+            # Parse the XML response
+            return parse_exchange_rates_xml(response.content)
+        else:
+            print(f"Error: API returned status code {response.status_code}")
+            return pd.DataFrame()
+    except Exception as e:
+        print(f"Error fetching exchange rates: {e}")
+        return pd.DataFrame()
 
 
-def find_exchange_rate_table(driver):
-    """Find and return the table containing exchange rate data"""
-    tables = driver.find_elements(By.TAG_NAME, "table")
+def parse_exchange_rates_xml(xml_content):
+    """Parse the XML content from Vietcombank API"""
+    try:
+        # Parse XML
+        root = ET.fromstring(xml_content)
 
-    # Find a table that contains currency information
-    for table in tables:
-        if any(currency in table.text for currency in ["USD", "EUR", "JPY"]):
-            return table
+        # Prepare data structure for DataFrame
+        data = []
 
-    return None
+        # Extract exchange rates
+        for exrate in root.findall('.//Exrate'):
+            currency_code = exrate.get('CurrencyCode')
+            currency_name = exrate.get('CurrencyName')
+            currency_en = exrate.get('CurrencyEN')
+            buy_cash = exrate.get('Buy')
+            buy_transfer = exrate.get('Transfer')
+            sell = exrate.get('Sell')
+
+            # Add to data list
+            data.append({
+                'Mã ngoại tệ': currency_code,
+                'Tên ngoại tệ': currency_en,
+                'Mua tiền mặt': buy_cash,
+                'Mua chuyển khoản': buy_transfer,
+                'Bán': sell
+            })
+
+        # Create DataFrame
+        df = pd.DataFrame(data)
+
+        # Filter out rows with missing sell rates (some currencies don't have all rates)
+        df = df[df['Bán'].notnull() & (df['Bán'] != '')]
+
+        return df
+
+    except Exception as e:
+        print(f"Error parsing XML: {e}")
+        return pd.DataFrame()
 
 
-def extract_table_data(table):
-    """Extract data from a table element and return headers and data rows"""
-    rows = table.find_elements(By.TAG_NAME, "tr")
-
-    # Extract headers
-    header_row = rows[0]
-    header_cells = header_row.find_elements(By.TAG_NAME, "th")
-
-    if not header_cells:
-        # If no th elements, try td elements
-        header_cells = header_row.find_elements(By.TAG_NAME, "td")
-
-    # Get headers
-    headers = [cell.text for cell in header_cells]
-
-    # Extract data rows
-    data = []
-    for row in rows[1:]:  # Skip header row
-        cells = row.find_elements(By.TAG_NAME, "td")
-        if cells:
-            row_data = [cell.text for cell in cells]
-            data.append(row_data)
-
-    return headers, data
-
-
-def save_to_csv(df, filename="vietcombank_exchange_rates.csv"):
+def save_to_csv(df, filename):
     """Save DataFrame to CSV and return the absolute path"""
     # Ensure directory exists
     directory = os.path.dirname(filename)
@@ -87,9 +77,7 @@ def save_to_csv(df, filename="vietcombank_exchange_rates.csv"):
 
 
 def crawl_vietcombank_exchange_rates(output_path=None):
-    """Main function to crawl and extract exchange rates"""
-    driver = None
-
+    """Main function to fetch and extract exchange rates"""
     if output_path is None:
         # Use the default path relative to this file
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -102,23 +90,12 @@ def crawl_vietcombank_exchange_rates(output_path=None):
         output_path = os.path.join(data_dir, 'vietcombank_exchange_rates.csv')
 
     try:
-        # Setup and navigate
-        driver = setup_driver()
-        url = "https://www.vietcombank.com.vn/vi-VN/KHCN/Cong-cu-Tien-ich/Ty-gia"
-        navigate_to_page(driver, url, wait_time=1)
+        # Fetch exchange rates from API
+        df = fetch_exchange_rates()
 
-        # Find and extract data
-        exchange_table = find_exchange_rate_table(driver)
-
-        if not exchange_table:
-            print("No currency exchange table found.")
+        if df.empty:
+            print("No exchange rate data found")
             return pd.DataFrame()
-
-        # Extract data from table
-        headers, data = extract_table_data(exchange_table)
-
-        # Create DataFrame
-        df = pd.DataFrame(data, columns=headers)
 
         # Save to CSV
         save_to_csv(df, output_path)
@@ -129,9 +106,6 @@ def crawl_vietcombank_exchange_rates(output_path=None):
     except Exception as e:
         print(f"Error: {e}")
         return pd.DataFrame()
-    finally:
-        if driver:
-            driver.quit()
 
 
 # Run the function when script is executed directly

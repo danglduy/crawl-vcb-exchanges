@@ -81,15 +81,15 @@ def get_rate(currency_code):
     return jsonify({"rate": rate})
 
 
-# API endpoint to refresh exchange rates by running crawler
+# API endpoint to refresh exchange rates by calling the API
 @app.route('/api/refresh', methods=['POST'])
 def refresh_rates():
     try:
         # Get the CSV path
         csv_path = get_csv_path()
 
-        # Run the crawler
-        print("Refreshing exchange rates...")
+        # Fetch new rates from API
+        print("Refreshing exchange rates from Vietcombank API...")
         df = crawl_vietcombank_exchange_rates(csv_path)
 
         if df.empty:
