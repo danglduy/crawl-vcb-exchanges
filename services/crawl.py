@@ -38,7 +38,6 @@ def parse_exchange_rates_xml(xml_content):
         for exrate in root.findall('.//Exrate'):
             currency_code = exrate.get('CurrencyCode')
             currency_name = exrate.get('CurrencyName')
-            currency_en = exrate.get('CurrencyEN')
             buy_cash = exrate.get('Buy')
             buy_transfer = exrate.get('Transfer')
             sell = exrate.get('Sell')
@@ -46,7 +45,7 @@ def parse_exchange_rates_xml(xml_content):
             # Add to data list
             data.append({
                 'Mã ngoại tệ': currency_code,
-                'Tên ngoại tệ': currency_en,
+                'Tên ngoại tệ': currency_name,
                 'Mua tiền mặt': buy_cash,
                 'Mua chuyển khoản': buy_transfer,
                 'Bán': sell
